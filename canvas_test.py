@@ -1,12 +1,19 @@
 from tkinter import *
 from tkinter import messagebox
+from tkinter.colorchooser import askcolor
+from tkinter.filedialog import asksaveasfilename
 import tkinter.tix as tix
-from PIL import ImageTk, Image
-import tkinter.colorchooser
+from PIL import ImageTk, Image, ImageGrab
+import ctypes
+ctypes.windll.shcore.SetProcessDpiAwareness(2)
+
 
 URL_HELP = "Enter the URL\nfor the image\nyou wish to\nedit."
-IMAGE_SIZE_HELP = "Select the size you would like\nyour image to be. 1st number is\nthe width and then 2nd number is\nthe height."
 BEGIN_HELP = "Start your project\nwith the image and size\nspecified above."
+IMAGE_SIZE_HELP = """Select the size you would like
+                     your image to be. The first number is
+                     the width and the the second number is
+                     the height."""
 
 class CanvasPage():
 
@@ -16,6 +23,7 @@ class CanvasPage():
         self.left_mouse_position = "up"
         self.x_pos, self.y_pos = None, None
         self.x1, self.y1, self.x2, self.y2 = None, None, None, None
+        self.selected_color = [None, "Black"]
 
         self.undo_stack = []
 
@@ -50,12 +58,19 @@ class CanvasPage():
         self.line_scale = Scale(self.button_frame, from_=1, to=100, orient=HORIZONTAL)
         self.line_scale.pack()
 
+        self.color_btn = Button(self.button_frame, text='Select a Color', command=self.choose_color, fg=self.selected_color[1])
+        self.color_btn.pack()
+
+        self.copy_image = Button(self.button_frame, text='Copy Image', command= lambda: self.save_image(master, self.drawing_area))
+        self.copy_image.pack()
+
         # open the start menu ontop of the root menu
         self.open_start_menu()
 
         # bind events to the canvas
         self.drawing_area.bind("<Motion>", self.motion)
         self.drawing_area.bind("<ButtonPress-1>", self.left_mouse_down)
+        master.bind("<ButtonPress-1>", self.left_mouse_down)
         self.drawing_area.bind("<ButtonRelease-1>", self.left_mouse_up)
 
     def open_start_menu(self):
@@ -142,6 +157,7 @@ class CanvasPage():
 
         self.dimensions = self.image_size_string.get().split(sep='x')
         self.drawing_area.config(width=int(self.dimensions[0]), height=int(self.dimensions[1]))
+        self.canvas_frame.config(width=int(self.dimensions[0]), height=int(self.dimensions[1]))
         self.open_image(self.url.get())
 
     def open_image(self, img_url):
@@ -182,7 +198,7 @@ class CanvasPage():
     def line_draw(self, event=None):
 
         if None not in (self.x1, self.y1, self.x2, self.y2):
-            event.widget.create_line(self.x1, self.y1, self.x2, self.y2, smooth=True, fill="green")
+            event.widget.create_line(self.x1, self.y1, self.x2, self.y2, smooth=True, fill=self.selected_color[1])
 
     def brush_draw(self, event=None):
 
@@ -197,7 +213,8 @@ class CanvasPage():
                                         smooth=True, 
                                         width=self.line_scale.get(), 
                                         capstyle=ROUND, 
-                                        joinstyle=ROUND)
+                                        joinstyle=ROUND,
+                                        fill=self.selected_color[1])
                 
             self.x_pos = event.x
             self.y_pos = event.y
@@ -209,13 +226,51 @@ class CanvasPage():
         if self.url.get() == "Enter the image url:":
             event.widget.delete(0, END)
             event.widget.config(fg="black")
-        
-# initialize root window and setup grid to center horizontally.
+    
+    def choose_color(self):
+        self.selected_color = askcolor(title='Choose a color')
+        self.color_btn.config(fg=self.selected_color[1])
+        # print(self.selected_color)
+
+    def save_image(self, master, widget):
+        self.x = master.winfo_rootx() + widget.winfo_rootx()
+        self.y = widget.winfo_rooty()
+
+        # print(widget.winfo_geometry())
+        # print(widget.winfo_rootx())
+        # print(widget.winfo_rooty())
+        # print(master.winfo_rootx())
+        # print(master.winfo_rooty())
+
+        self.canvas_geometry = widget.winfo_geometry().split(sep="+")
+        # print(self.canvas_geometry)
+
+        self.widget_x1 = int(self.canvas_geometry[1])
+        self.widget_y1 = int(self.canvas_geometry[2])
+        self.widget_x2 = self.widget_x1 + int(self.dimensions[0])
+        self.widget_y2 = self.widget_y1 + int(self.dimensions[1])
+
+        # print(f'{self.x}, {self.y}')
+        # print(f"{self.x}, {self.y}, {self.x + self.widget_x2}, {self.y + self.widget_y2}")
+
+        file_name = asksaveasfilename(initialdir="/", title="Save as...", filetypes=(("png files", ".png"), ("all files", "*.*")))
+        # print(file_name)
+
+        ImageGrab.grab().crop((self.x, self.y, self.x + self.widget_x2, self.y + self.widget_y2)).save(file_name)
+        # .crop((self.x, self.y, self.x + self.widget_x2, self.y + self.widget_y2))
+
+
+# Create main window and set to full-screen
 root = tix.Tk()
 root.state('zoomed')
 
+# configure grid rows & columns to center the frames within the main window
 root.grid_rowconfigure(0, weight=1)
 root.grid_rowconfigure(1, weight=1)
 root.grid_columnconfigure(0, weight=1)
+
+# create a new Canvas page object 
 canvas = CanvasPage(root)
+
+
 root.mainloop()
