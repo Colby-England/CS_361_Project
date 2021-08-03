@@ -1,4 +1,4 @@
-from tkinter import *
+from tkinter import * 
 from tkinter import messagebox
 from tkinter.colorchooser import askcolor
 from tkinter.filedialog import asksaveasfilename
@@ -161,6 +161,9 @@ class CanvasPage():
         # open the start menu ontop of the root menu
         self.open_start_menu()
 
+        self.help_btn = Button(self.button_frame, text="Help", command=self.open_help_menu)
+        self.help_btn.grid(row=0, column=9)
+
         # bind events to the canvas
         self.drawing_area.bind("<Motion>", self.motion)
         self.drawing_area.bind("<ButtonPress-1>", self.left_mouse_down)
@@ -234,6 +237,16 @@ class CanvasPage():
         # place begin project row in grid
         self.begin_btn.grid(row=3, column=2, pady=10)
         self.begin_help_icon.grid(row=3, column=3, pady=10)
+
+    def open_help_menu(self):
+
+        self.help_menu = Toplevel(root)
+        self.help_menu.state("zoomed")
+
+        self.text = f'URL:\n{URL_HELP}\n\nBegin:\n{BEGIN_HELP}\n\nImage Size:\n{IMAGE_SIZE_HELP}\n\nBrush:\n{BRUSH_HELP}\n\nLine:\n{LINE_HELP}\n\nColor:\n{COLOR_HELP}\n\nBrush Size:\n{BRUSH_SIZE_HELP}\n\nUndo:\n{UNDO_HELP}\n\nSave:\n{SAVE_HELP}'
+        self.help_text = Label(self.help_menu, text=self.text, font=("Arial", 8))
+
+        self.help_text.pack()
 
     def start_project(self):
 
